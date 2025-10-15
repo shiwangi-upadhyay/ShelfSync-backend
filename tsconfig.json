@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "es2020",                // Modern JS features
+    "module": "commonjs",              // Node.js compatibility
+    "outDir": "dist",                  // Where compiled files go (if you run tsc)
+    "rootDir": "src",                  // Your source files
+    "esModuleInterop": true,           // Allow default imports from CommonJS modules
+    "strict": true,                    // Enable all strict type-checking options
+    "skipLibCheck": true,              // Speed up compilation, skip type checking of all declaration files
+    "forceConsistentCasingInFileNames": true, // Case-sensitive file imports
+    "typeRoots": ["./node_modules/@types", "./src/types"]
+  },
+  "include": ["src"],                  // Compile everything in src/
+  "exclude": ["node_modules", "dist"]  // Don’t compile these folders
+}
