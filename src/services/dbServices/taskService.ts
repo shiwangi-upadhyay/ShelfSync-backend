@@ -65,6 +65,14 @@ export class TaskService {
     );
   }
 
+  static async updateTaskStatus(taskId: string, status: "not started" | "in progress" | "completed" | "closed") {
+    return Task.findByIdAndUpdate(
+      taskId,
+      { status },
+      { new: true }
+    );
+  }
+
   static async addProgressField(taskId: string, progress: { title: string; value: string; by: string; date: Date }) {
     return Task.findByIdAndUpdate(
       taskId,

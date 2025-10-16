@@ -161,6 +161,38 @@ export default class TaskController {
     }
   }
 
+  static async updateTaskStatus(req: Request, res: Response) {
+    try {
+      const { status } = req.body;
+      if (!status) return res.status(400).json({ error: "Status required" });
+
+      const task = await Task.findById(req.params.id).populate("team");
+      if (!task) return res.status(404).json({ error: "Task not found" });
+
+      // Only allow status change if user is team member
+      const userId: string | undefined = req.user?.userId;
+      if (!userId) {
+        return res.status(400).json({ error: "User ID required" });
+      }
+      const teamId = task.team._id.toString();
+      if (!(await isTeamMember(teamId, userId))) {
+        return res.status(403).json({ error: "Forbidden: Not a team member" });
+      }
+
+      // Validate status value
+      if (!["not started", "in progress", "completed", "closed"].includes(status)) {
+        return res.status(400).json({ error: "Invalid status value" });
+      }
+
+      task.status = status;
+      await task.save();
+
+      res.json({ status: task.status });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+
   static async updateProgressField(req: Request, res: Response) {
     try {
       const { title, value } = req.body;

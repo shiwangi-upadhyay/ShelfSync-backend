@@ -32,4 +32,7 @@ router.post("/:id/files", requireAuth, TaskController.addFile);
 // Update progress field (any authenticated user who is a team member)
 router.patch("/:id/progress", requireAuth, TaskController.updateProgressField);
 
+// Update task status (any authenticated user who is a team member)
+router.patch("/:id/status", requireAuth, TaskController.updateTaskStatus);
+
 export default router;
