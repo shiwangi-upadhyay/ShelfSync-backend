@@ -4,7 +4,9 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon --exec ts-node --transpile-only ./src/app.ts",
-    "start": "ts-node --transpile-only ./src/app.ts"
+    "build": "tsc",
+   "start": "node dist/app.js"
+    
   },
   "keywords": [],
   "author": "",
