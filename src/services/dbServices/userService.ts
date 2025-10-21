@@ -7,12 +7,18 @@ export class UserService {
     return await User.find({}, { passwordHash: 0 });
   }
 
-static async searchByName(query: string, limit = 10) {
-  // Match anywhere in the name, case-insensitive
-  return User.find({ 
-    name: { $regex: query, $options: "i" }
-  }).limit(limit);
-}
+  // NEW: Search by name OR email, case-insensitive
+  static async searchByNameOrEmail(query: string, limit = 10) {
+    if (!query) return [];
+    const safeQuery = query.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+    return User.find({
+      $or: [
+        { name: { $regex: safeQuery, $options: "i" } },
+        { email: { $regex: safeQuery, $options: "i" } }
+      ]
+    }, { passwordHash: 0 }).limit(limit);
+  }
+
   static async findById(userId: string) {
     return await User.findById(userId, { passwordHash: 0 });
   }

@@ -54,11 +54,16 @@ export default class AuthController {
       res.status(400).json({ error: err.message });
     }
   }
-
   static async logout(_req: Request, res: Response) {
     try {
-      res.clearCookie("token");
+      res.clearCookie("authToken", {
+        httpOnly: true,
+        secure: false, // true if using HTTPS
+        sameSite: "lax",
+        path: "/",
+      });
       res.json({ message: "Logout successful" });
+      console.log("User logged out, authToken cookie cleared.");
     } catch (err: any) {
       res.status(500).json({ error: "Internal server error" });
     }

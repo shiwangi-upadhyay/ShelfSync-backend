@@ -13,30 +13,30 @@ export default class UserController {
     }
   }
 
-  // this method for search endpoint
+  // UPDATE: use new search function
   static async searchUsers(req: Request, res: Response) {
     try {
       const search = typeof req.query.q === "string" ? req.query.q : "";
-      // You may need to add a search method to UserService, or use the model directly
-      const users = await UserService.searchByName(search, 10); // Limit to 10 results
+      const users = await UserService.searchByNameOrEmail(search, 10); // <-- updated!
       res.json(users);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
   }
+
   static async getUserById(req: Request, res: Response) {
-  const { id } = req.params;
-  if (!mongoose.Types.ObjectId.isValid(id)) {
-    return res.status(400).json({ error: "Invalid user ID" });
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: "Invalid user ID" });
+    }
+    try {
+      const user = await UserService.findById(id);
+      if (!user) return res.status(404).json({ error: "User not found" });
+      res.json(user);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
   }
-  try {
-    const user = await UserService.findById(id);
-    if (!user) return res.status(404).json({ error: "User not found" });
-    res.json(user);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-}
   static async createUser(req: Request, res: Response) {
     try {
       const { name, email, password, role } = req.body;
