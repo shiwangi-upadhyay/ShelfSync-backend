@@ -15,7 +15,7 @@ app.use(cookieParser());
 // ✅ Enable CORS before routes
 app.use(
   cors({
-    origin: "http://localhost:3000", // your frontend URL
+    origin: ["http://localhost:3000", "https://shelf-sync-seven.vercel.app"],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     credentials: true,
   })
