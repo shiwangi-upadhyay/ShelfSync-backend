@@ -15,11 +15,24 @@ app.use(cookieParser());
 // ✅ Enable CORS before routes
 app.use(
   cors({
-    origin: ["http://localhost:3000", "https://shelf-sync-seven.vercel.app"],
+    origin: function (origin, callback) {
+      const allowedOrigins = [
+        "http://localhost:3000",
+        "https://shelf-sync-seven.vercel.app",
+      ];
+
+      // Allow requests with no origin (like mobile apps, curl, Postman)
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     credentials: true,
   })
 );
+
 
 app.use(express.json());
 

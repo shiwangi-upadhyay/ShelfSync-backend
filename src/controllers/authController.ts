@@ -41,8 +41,8 @@ export default class AuthController {
       res
         .cookie("authToken", token, {
           httpOnly: true,
-          secure: false, // true for HTTPS; false for localhost
-          sameSite: "lax", // or "none" if using localhost:3000 & localhost:5000 (cross-origin)
+          secure: process.env.NODE_ENV === "production", // ✅ must be true on Render
+          sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // ✅ required for cross-domain
           maxAge: 30 * 24 * 60 * 60 * 1000,
           path: "/",
         })
@@ -58,8 +58,8 @@ export default class AuthController {
     try {
       res.clearCookie("authToken", {
         httpOnly: true,
-        secure: false, // true if using HTTPS
-        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
         path: "/",
       });
       res.json({ message: "Logout successful" });
