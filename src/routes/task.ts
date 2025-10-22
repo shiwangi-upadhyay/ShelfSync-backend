@@ -1,6 +1,6 @@
 import { Router } from "express";
 import TaskController from "../controllers/taskController";
-import { requireAuth, requireTeamAdmin } from "../middleware/auth";
+import { requireAuth, requireCanCreateTask } from "../middleware/auth";
 
 const router = Router();
 
@@ -9,7 +9,7 @@ const router = Router();
 router.post("/", (req, res, next) => {
   console.log("[TaskRoutes] POST /tasks hit");
   next();
-}, requireAuth, requireTeamAdmin, TaskController.createTask);
+}, requireAuth, requireCanCreateTask, TaskController.createTask);
 
 // Get all tasks for a team (any authenticated user who is a team member)
 router.get("/team/:teamId", requireAuth, TaskController.getTasksForTeam);
@@ -18,10 +18,10 @@ router.get("/team/:teamId", requireAuth, TaskController.getTasksForTeam);
 router.get("/:id", requireAuth, TaskController.getTaskById);
 
 // Update a task (admin only for now, but can extend with assigned member check)
-router.put("/:id", requireAuth, requireTeamAdmin, TaskController.updateTask);
+router.put("/:id", requireAuth, requireCanCreateTask, TaskController.updateTask);
 
 // Delete a task (admin only)
-router.delete("/:id", requireAuth, requireTeamAdmin, TaskController.deleteTask);
+router.delete("/:id", requireAuth, requireCanCreateTask, TaskController.deleteTask);
 
 // Add a comment to a task (any authenticated user who is a team member)
 router.post("/:id/comments", requireAuth, TaskController.addComment);

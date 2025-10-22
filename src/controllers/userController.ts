@@ -17,9 +17,26 @@ export default class UserController {
   static async searchUsers(req: Request, res: Response) {
     try {
       const search = typeof req.query.q === "string" ? req.query.q : "";
-      const users = await UserService.searchByNameOrEmail(search, 10); // <-- updated!
+      const page = req.query.page ? parseInt(req.query.page as string) : 1;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+      console.log(
+        "[SearchUsers] Query received:",
+        search,
+        "page:",
+        page,
+        "limit:",
+        limit
+      );
+
+      const users = await UserService.searchByNameOrEmail(search, page, limit);
+      console.log(
+        "[SearchUsers] Users found:",
+        users.map((u) => u.name)
+      ); // or log the entire user object
+
       res.json(users);
     } catch (err: any) {
+      console.error("[SearchUsers] Error:", err);
       res.status(500).json({ error: err.message });
     }
   }
@@ -41,9 +58,15 @@ export default class UserController {
     try {
       const { name, email, password, role } = req.body;
       const existing = await UserService.findByEmail(email);
-      if (existing) return res.status(409).json({ error: "Email already exists" });
+      if (existing)
+        return res.status(409).json({ error: "Email already exists" });
       const passwordHash = await bcrypt.hash(password, 10);
-      const user = await UserService.createUser({ name, email, passwordHash, role });
+      const user = await UserService.createUser({
+        name,
+        email,
+        passwordHash,
+        role,
+      });
       res.status(201).json({ user });
     } catch (err: any) {
       res.status(400).json({ error: err.message });

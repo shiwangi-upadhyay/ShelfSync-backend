@@ -30,6 +30,7 @@ export interface ITask extends Document {
   priority: "low" | "medium" | "high";
   status: "not started" | "in progress" | "completed" | "closed";
   assignedTo: Types.ObjectId[];
+  assignedBy: Types.ObjectId;
   comments: IComment[];
   refFiles: IRefFile[];
   progressFields: IProgressField[];
@@ -51,6 +52,7 @@ const TaskSchema = new Schema<ITask>({
     default: "not started"
   },
   assignedTo: [{ type: Schema.Types.ObjectId, ref: "User" }],
+  assignedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   comments: [{
   text: String,
   by: { type: Schema.Types.ObjectId, ref: "User" },

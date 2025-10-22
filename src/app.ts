@@ -10,9 +10,6 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cookieParser());
-
-// ✅ Enable CORS before routes
 app.use(
   cors({
     origin: function (origin, callback) {
@@ -32,6 +29,8 @@ app.use(
     credentials: true,
   })
 );
+
+app.use(cookieParser());
 
 
 app.use(express.json());

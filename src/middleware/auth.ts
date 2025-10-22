@@ -12,45 +12,55 @@ declare module "express-serve-static-core" {
     };
   }
 }
-
-// Middleware to ensure the logged-in user is the team admin
-export async function requireTeamAdmin(
+// Middleware to ensure the logged-in user is team admin OR has canCreateTask permission
+export async function requireCanCreateTask(
   req: Request,
   res: Response,
   next: NextFunction
 ) {
-  console.log("[requireTeamAdmin] Called for route:", req.originalUrl);
-  console.log("[requireTeamAdmin] req.user:", req.user);
-  console.log("[requireTeamAdmin] req.params:", req.params);
+  console.log("[requireCanCreateTask] Called for route:", req.originalUrl);
+  console.log("[requireCanCreateTask] req.user:", req.user);
+  console.log("[requireCanCreateTask] req.params:", req.params);
 
   // Try both param sources: req.params.id and req.body.teamId
   const teamId = req.params.id || req.body.teamId;
-  console.log("[requireTeamAdmin] teamId resolved:", teamId);
+  console.log("[requireCanCreateTask] teamId resolved:", teamId);
 
   const team = await Team.findById(teamId);
   if (!team) {
-    console.error("[requireTeamAdmin] Team not found for id:", teamId);
+    console.error("[requireCanCreateTask] Team not found for id:", teamId);
     return res.status(404).json({ error: "Team not found" });
   }
-  console.log("[requireTeamAdmin] Team found:", team);
+  console.log("[requireCanCreateTask] Team found:", team);
 
-  if (team.admin.toString() !== req.user?.userId) {
+  const userId = req.user?.userId;
+  // Check if user is admin or has canCreateTask permission
+  const isAdmin = team.admin.toString() === userId;
+  const canCreate = isAdmin || team.members.some(
+    (m: any) => m.user.toString() === userId && m.canCreateTask
+  );
+
+  if (!canCreate) {
     console.warn(
-      "[requireTeamAdmin] User is not team admin. team.admin:",
+      "[requireCanCreateTask] User is not allowed. team.admin:",
       team.admin.toString(),
       "req.user.userId:",
-      req.user?.userId
+      userId
     );
     return res
       .status(403)
-      .json({ error: "Only the team admin can perform this action" });
+      .json({ error: "Only the team admin or a member with canCreateTask permission can perform this action" });
   }
-  console.log("[requireTeamAdmin] User is team admin, proceeding.");
+  console.log("[requireCanCreateTask] User is allowed, proceeding.");
   next();
 }
-
 // Authenticate: Verifies JWT in cookies, attaches user to req
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
+  // Allow CORS preflight requests
+  if (req.method === "OPTIONS") {
+    return next();
+  }
+
   console.log("[requireAuth] Called for route:", req.originalUrl);
   console.log("[requireAuth] Cookies received:", req.cookies);
 

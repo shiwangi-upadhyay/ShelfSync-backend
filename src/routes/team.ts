@@ -1,6 +1,6 @@
 import { Router } from "express";
 import TeamController from "../controllers/teamController";
-import { requireAuth, requireTeamAdmin } from "../middleware/auth";
+import { requireAuth, requireCanCreateTask} from "../middleware/auth";
 
 
 const router = Router();
@@ -15,15 +15,15 @@ router.get("/", requireAuth, TeamController.getTeamsForUser);
 router.get("/:id", requireAuth, TeamController.getTeamById);
 
 // Update a team (only team admin!)
-router.put("/:id", requireAuth, requireTeamAdmin, TeamController.updateTeam);
+router.put("/:id", requireAuth,requireCanCreateTask, TeamController.updateTeam);
 
 // Delete a team (only team admin!)
-router.delete("/:id", requireAuth, requireTeamAdmin, TeamController.deleteTeam);
+router.delete("/:id", requireAuth, requireCanCreateTask, TeamController.deleteTeam);
 
 // Add a member to a team (only team admin!)
-router.post("/:id/members", requireAuth, requireTeamAdmin, TeamController.addMember);
+router.post("/:id/members", requireAuth, requireCanCreateTask, TeamController.addMember);
 
 // Remove a member from a team (only team admin!)
-router.delete("/:id/members", requireAuth, requireTeamAdmin, TeamController.removeMember);
+router.delete("/:id/members", requireAuth, requireCanCreateTask, TeamController.removeMember);
 
 export default router;
