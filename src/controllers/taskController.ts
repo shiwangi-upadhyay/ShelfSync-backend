@@ -55,8 +55,10 @@ export default class TaskController {
           assignedTo: t.assignedTo,
           assignedBy: userId,
         } as any);
+        // If createTask returned null/undefined, skip to avoid accessing task._id
+        if (!task) continue;
         const fullTask = await TaskService.findById(String(task._id));
-        created.push(fullTask);
+        created.push(fullTask ?? task);
       }
 
       res.status(201).json({ created });

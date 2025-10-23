@@ -15,7 +15,6 @@ export class TaskService {
     assignedTo?: string[];
     assignedBy?: string; 
   }) {
-    
     const task = await Task.create({
       team: teamId,
       desc,
@@ -26,21 +25,25 @@ export class TaskService {
       priority,
       assignedTo,
       assignedBy,
-      status: "not started"
+      status: "not started",
     });
-    
-    return task;
+    // Return fully populated
+    return Task.findById(task._id)
+      .populate("assignedTo", "name email avatarUrl")
+      .populate("assignedBy", "name email avatarUrl")
+      .populate("comments.by", "name avatarUrl")
+      .populate("team", "name");
   }
 
-static async findTasksForTeam(teamId: string) {
-  const tasks = await Task.find({ team: teamId })
-    .populate("assignedTo", "name email avatarUrl")
-    .populate("assignedBy", "name email avatarUrl")
-    .populate("comments.by", "name avatarUrl");
-  // Add this line:
-  console.log("POPULATED assignedTo of first task:", tasks[0].assignedTo);
-  return tasks;
-}
+  static async findTasksForTeam(teamId: string) {
+    const tasks = await Task.find({ team: teamId })
+      .populate("assignedTo", "name email avatarUrl")
+      .populate("assignedBy", "name email avatarUrl")
+      .populate("comments.by", "name avatarUrl");
+    // Optional debug
+    // console.log("POPULATED assignedTo of first task:", tasks[0]?.assignedTo);
+    return tasks;
+  }
 
   static async findById(taskId: string) {
     return Task.findById(taskId)
@@ -54,7 +57,7 @@ static async findTasksForTeam(teamId: string) {
     return Task.findByIdAndUpdate(taskId, update, { new: true })
       .populate("assignedTo", "name email avatarUrl")
       .populate("assignedBy", "name email avatarUrl")
-      
+      .populate("comments.by", "name avatarUrl")
       .populate("team", "name");
   }
 
@@ -68,7 +71,11 @@ static async findTasksForTeam(teamId: string) {
       taskId,
       { $push: { comments: comment } },
       { new: true }
-    );
+    )
+      .populate("assignedTo", "name email avatarUrl")
+      .populate("assignedBy", "name email avatarUrl")
+      .populate("comments.by", "name avatarUrl")
+      .populate("team", "name");
   }
 
   static async addFile(taskId: string, file: { url: string; name: string; uploadedBy: string; date: Date }) {
@@ -76,22 +83,40 @@ static async findTasksForTeam(teamId: string) {
       taskId,
       { $push: { refFiles: file } },
       { new: true }
-    );
+    )
+      .populate("assignedTo", "name email avatarUrl")
+      .populate("assignedBy", "name email avatarUrl")
+      .populate("comments.by", "name avatarUrl")
+      .populate("team", "name");
   }
 
-  static async updateTaskStatus(taskId: string, status: "not started" | "in progress" | "completed" | "closed") {
+  static async updateTaskStatus(
+    taskId: string,
+    status: "not started" | "in progress" | "completed" | "closed"
+  ) {
     return Task.findByIdAndUpdate(
       taskId,
       { status },
       { new: true }
-    );
+    )
+      .populate("assignedTo", "name email avatarUrl")
+      .populate("assignedBy", "name email avatarUrl")
+      .populate("comments.by", "name avatarUrl")
+      .populate("team", "name");
   }
 
-  static async addProgressField(taskId: string, progress: { title: string; value: string; by: string; date: Date }) {
+  static async addProgressField(
+    taskId: string,
+    progress: { title: string; value: string; by: string; date: Date }
+  ) {
     return Task.findByIdAndUpdate(
       taskId,
       { $push: { progressFields: progress } },
       { new: true }
-    );
+    )
+      .populate("assignedTo", "name email avatarUrl")
+      .populate("assignedBy", "name email avatarUrl")
+      .populate("comments.by", "name avatarUrl")
+      .populate("team", "name");
   }
 }
