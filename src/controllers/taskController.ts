@@ -15,25 +15,34 @@ export default class TaskController {
       }
 
       // Find team and populate admin and members.user for permission check
-      const team = await Team.findById(teamId).populate("admin").populate("members.user");
+      const team = await Team.findById(teamId)
+        .populate("admin")
+        .populate("members.user");
       if (!team) {
         return res.status(404).json({ error: "Team not found" });
       }
 
       // Permission: Only admin or member with canCreateTask may create tasks
       const isAdmin = team.admin._id.toString() === userId;
-      const canCreate = isAdmin || team.members.some(
-        (m: any) =>
-          m.user &&
-          (m.user._id?.toString?.() || m.user.toString()) === userId &&
-          m.canCreateTask
-      );
+      const canCreate =
+        isAdmin ||
+        team.members.some(
+          (m: any) =>
+            m.user &&
+            (m.user._id?.toString?.() || m.user.toString()) === userId &&
+            m.canCreateTask
+        );
       if (!canCreate) {
-        return res.status(403).json({ error: "Forbidden: You do not have permission to create tasks for this team." });
+        return res
+          .status(403)
+          .json({
+            error:
+              "Forbidden: You do not have permission to create tasks for this team.",
+          });
       }
 
       const created = [];
-      for (const t of (tasks ?? [])) {
+      for (const t of tasks ?? []) {
         if (!t.desc || !t.assignedTo?.length) continue;
         const task = await TaskService.createTask({
           teamId,
@@ -44,9 +53,10 @@ export default class TaskController {
           endDate: t.endDate,
           priority: t.priority,
           assignedTo: t.assignedTo,
-          assignedBy: userId, 
+          assignedBy: userId,
         } as any);
-        created.push(task);
+        const fullTask = await TaskService.findById(String(task._id));
+        created.push(fullTask);
       }
 
       res.status(201).json({ created });
@@ -56,14 +66,13 @@ export default class TaskController {
   }
 
   static async getTasksForTeam(req: Request, res: Response) {
-    try {
-      const tasks = await TaskService.findTasksForTeam(req.params.teamId);
-      res.json(tasks);
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
+  try {
+    const tasks = await TaskService.findTasksForTeam(req.params.teamId);
+    res.json(tasks); // This must return populated assignedTo!
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
   }
-
+}
   static async getTaskById(req: Request, res: Response) {
     try {
       const task = await TaskService.findById(req.params.id);
@@ -114,8 +123,7 @@ export default class TaskController {
         team.admin.toString() === userId ||
         team.members.some(
           (m: any) =>
-            m.user &&
-            (m.user._id?.toString?.() || m.user.toString()) === userId
+            m.user && (m.user._id?.toString?.() || m.user.toString()) === userId
         );
       if (!isMember) {
         return res.status(403).json({ error: "Forbidden: Not a team member" });
@@ -160,8 +168,7 @@ export default class TaskController {
         team.admin.toString() === userId ||
         team.members.some(
           (m: any) =>
-            m.user &&
-            (m.user._id?.toString?.() || m.user.toString()) === userId
+            m.user && (m.user._id?.toString?.() || m.user.toString()) === userId
         );
       if (!isMember) {
         return res.status(403).json({ error: "Forbidden: Not a team member" });
@@ -203,14 +210,15 @@ export default class TaskController {
         team.admin.toString() === userId ||
         team.members.some(
           (m: any) =>
-            m.user &&
-            (m.user._id?.toString?.() || m.user.toString()) === userId
+            m.user && (m.user._id?.toString?.() || m.user.toString()) === userId
         );
       if (!isMember) {
         return res.status(403).json({ error: "Forbidden: Not a team member" });
       }
 
-      if (!["not started", "in progress", "completed", "closed"].includes(status)) {
+      if (
+        !["not started", "in progress", "completed", "closed"].includes(status)
+      ) {
         return res.status(400).json({ error: "Invalid status value" });
       }
 
@@ -241,8 +249,7 @@ export default class TaskController {
         team.admin.toString() === userId ||
         team.members.some(
           (m: any) =>
-            m.user &&
-            (m.user._id?.toString?.() || m.user.toString()) === userId
+            m.user && (m.user._id?.toString?.() || m.user.toString()) === userId
         );
       if (!isMember) {
         return res.status(403).json({ error: "Forbidden: Not a team member" });

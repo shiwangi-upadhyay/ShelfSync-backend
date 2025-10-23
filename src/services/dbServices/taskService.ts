@@ -15,6 +15,7 @@ export class TaskService {
     assignedTo?: string[];
     assignedBy?: string; 
   }) {
+    
     const task = await Task.create({
       team: teamId,
       desc,
@@ -27,19 +28,25 @@ export class TaskService {
       assignedBy,
       status: "not started"
     });
+    
     return task;
   }
 
- static async findTasksForTeam(teamId: string) {
-    return Task.find({ team: teamId })
-      .populate("assignedTo", "name email avatarUrl")
-      .populate("assignedBy", "name email avatarUrl"); // <<<<<<<<<<<<<<<
-  }
+static async findTasksForTeam(teamId: string) {
+  const tasks = await Task.find({ team: teamId })
+    .populate("assignedTo", "name email avatarUrl")
+    .populate("assignedBy", "name email avatarUrl")
+    .populate("comments.by", "name avatarUrl");
+  // Add this line:
+  console.log("POPULATED assignedTo of first task:", tasks[0].assignedTo);
+  return tasks;
+}
 
   static async findById(taskId: string) {
     return Task.findById(taskId)
       .populate("assignedTo", "name email avatarUrl")
       .populate("assignedBy", "name email avatarUrl")
+      .populate("comments.by", "name avatarUrl")
       .populate("team", "name");
   }
 
@@ -47,6 +54,7 @@ export class TaskService {
     return Task.findByIdAndUpdate(taskId, update, { new: true })
       .populate("assignedTo", "name email avatarUrl")
       .populate("assignedBy", "name email avatarUrl")
+      
       .populate("team", "name");
   }
 
