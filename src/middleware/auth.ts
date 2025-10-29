@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import Team from "../models/team";
+import Task from "../models/task";
 
 // Augment Express Request type to include 'user'
 declare module "express-serve-static-core" {
@@ -13,46 +14,54 @@ declare module "express-serve-static-core" {
   }
 }
 // Middleware to ensure the logged-in user is team admin OR has canCreateTask permission
-export async function requireCanCreateTask(
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
-  console.log("[requireCanCreateTask] Called for route:", req.originalUrl);
-  console.log("[requireCanCreateTask] req.user:", req.user);
-  console.log("[requireCanCreateTask] req.params:", req.params);
+export async function requireCanCreateTask(req: Request, res: Response, next: NextFunction) {
+  try {
+    console.log("[requireCanCreateTask] Called for route:", req.originalUrl);
+    const userId = req.user?.userId;
+    if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
-  // Try both param sources: req.params.id and req.body.teamId
-  const teamId = req.params.id || req.body.teamId;
-  console.log("[requireCanCreateTask] teamId resolved:", teamId);
+    // Try explicit teamId first
+    let teamId: string | undefined = req.body?.teamId;
 
-  const team = await Team.findById(teamId);
-  if (!team) {
-    console.error("[requireCanCreateTask] Team not found for id:", teamId);
-    return res.status(404).json({ error: "Team not found" });
+    // If missing and params.id exists, treat params.id as a task id and resolve its team
+    if (!teamId && req.params?.id) {
+      const possibleTaskId = req.params.id;
+      const task = await Task.findById(possibleTaskId).select("team").lean();
+      if (task && task.team) teamId = String(task.team);
+    }
+
+    if (!teamId) {
+      console.error("[requireCanCreateTask] Could not resolve teamId");
+      return res.status(400).json({ error: "Missing team identifier" });
+    }
+
+    const team = await Team.findById(teamId).populate("admin").populate("members.user");
+    if (!team) {
+      console.error("[requireCanCreateTask] Team not found:", teamId);
+      return res.status(404).json({ error: "Team not found" });
+    }
+
+    // Normalize admin id (team.admin might be populated or just an id)
+    const adminId = String((team.admin as any)?._id ?? team.admin);
+
+    const isAdmin = adminId === String(userId);
+    const canCreate = isAdmin || (team.members || []).some((m: any) => {
+      const u = m?.user;
+      const idStr = (u && u._id) ? String(u._id) : String(u);
+      return idStr === String(userId) && !!m.canCreateTask;
+    });
+
+    if (!canCreate) {
+      console.warn("[requireCanCreateTask] Permission denied for user:", userId, "team:", teamId);
+      return res.status(403).json({ error: "Only the team admin or a member with canCreateTask permission can perform this action" });
+    }
+
+    (req as any).team = team; // attach for downstream if needed
+    next();
+  } catch (err: any) {
+    console.error("[requireCanCreateTask] error:", err);
+    return res.status(500).json({ error: err?.message || "Server error" });
   }
-  console.log("[requireCanCreateTask] Team found:", team);
-
-  const userId = req.user?.userId;
-  // Check if user is admin or has canCreateTask permission
-  const isAdmin = team.admin.toString() === userId;
-  const canCreate = isAdmin || team.members.some(
-    (m: any) => m.user.toString() === userId && m.canCreateTask
-  );
-
-  if (!canCreate) {
-    console.warn(
-      "[requireCanCreateTask] User is not allowed. team.admin:",
-      team.admin.toString(),
-      "req.user.userId:",
-      userId
-    );
-    return res
-      .status(403)
-      .json({ error: "Only the team admin or a member with canCreateTask permission can perform this action" });
-  }
-  console.log("[requireCanCreateTask] User is allowed, proceeding.");
-  next();
 }
 // Authenticate: Verifies JWT in cookies, attaches user to req
 export function requireAuth(req: Request, res: Response, next: NextFunction) {

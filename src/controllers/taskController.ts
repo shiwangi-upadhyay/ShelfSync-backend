@@ -9,41 +9,41 @@ export default class TaskController {
     try {
       const { teamId, tasks } = req.body;
       const userId = req.user?.userId;
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
-      if (!userId) {
-        return res.status(401).json({ error: "Unauthorized: User not found" });
-      }
+      const team = await Team.findById(teamId).populate("admin").populate("members.user");
+      if (!team) return res.status(404).json({ error: "Team not found" });
 
-      // Find team and populate admin and members.user for permission check
-      const team = await Team.findById(teamId)
-        .populate("admin")
-        .populate("members.user");
-      if (!team) {
-        return res.status(404).json({ error: "Team not found" });
-      }
+      const isAdmin = String((team.admin as any)?._id ?? team.admin) === String(userId);
+      const canCreate = isAdmin || (team.members || []).some((m: any) => {
+        const u = m?.user;
+        const idStr = (u && u._id) ? String(u._id) : String(u);
+        return idStr === String(userId) && !!m.canCreateTask;
+      });
+      if (!canCreate) return res.status(403).json({ error: "Forbidden: You do not have permission to create tasks for this team." });
 
-      // Permission: Only admin or member with canCreateTask may create tasks
-      const isAdmin = team.admin._id.toString() === userId;
-      const canCreate =
-        isAdmin ||
-        team.members.some(
-          (m: any) =>
-            m.user &&
-            (m.user._id?.toString?.() || m.user.toString()) === userId &&
-            m.canCreateTask
-        );
-      if (!canCreate) {
-        return res
-          .status(403)
-          .json({
-            error:
-              "Forbidden: You do not have permission to create tasks for this team.",
-          });
-      }
-
-      const created = [];
+      const created: any[] = [];
       for (const t of tasks ?? []) {
-        if (!t.desc || !t.assignedTo?.length) continue;
+        // Normalize and sanitize assignedTo so Mongoose receives an array of ids (no empty strings)
+        if (!t.desc) continue;
+
+        let assignedTo: any = t.assignedTo;
+        if (typeof assignedTo === "string") {
+          // try to parse JSON string like "[\"id1\",\"id2\"]"
+          try {
+            assignedTo = JSON.parse(assignedTo);
+          } catch (e) {
+            // fallback: split on commas (e.g. "id1,id2")
+            assignedTo = assignedTo.split(",").map((s: string) => s.trim()).filter(Boolean);
+          }
+        }
+
+        if (!Array.isArray(assignedTo) || !assignedTo.length) continue;
+
+        // remove any empty/falsy entries
+        assignedTo = assignedTo.filter((x: any) => !!String(x).trim());
+        if (!assignedTo.length) continue;
+
         const task = await TaskService.createTask({
           teamId,
           desc: t.desc,
@@ -52,46 +52,64 @@ export default class TaskController {
           startDate: t.startDate,
           endDate: t.endDate,
           priority: t.priority,
-          assignedTo: t.assignedTo,
+          assignedTo,
           assignedBy: userId,
         } as any);
-        // If createTask returned null/undefined, skip to avoid accessing task._id
         if (!task) continue;
-        const fullTask = await TaskService.findById(String(task._id));
-        created.push(fullTask ?? task);
+        const fullTask = await Task.findById(String(task._id))
+          .populate("assignedTo", "name email avatarUrl")
+          .populate("assignedBy", "name email avatarUrl")
+          .populate("comments.by", "name avatarUrl")
+          .populate("team", "name");
+        if (fullTask) created.push(fullTask);
       }
 
-      res.status(201).json({ created });
+      return res.status(201).json({ created });
     } catch (err: any) {
-      res.status(400).json({ error: err.message });
+      console.error("[TaskController.createTask] error:", err);
+      return res.status(400).json({ error: err?.message || "Failed to create tasks" });
     }
   }
 
   static async getTasksForTeam(req: Request, res: Response) {
-  try {
-    const tasks = await TaskService.findTasksForTeam(req.params.teamId);
-    res.json(tasks); // This must return populated assignedTo!
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
+    try {
+      const teamId = req.params.teamId;
+      const tasks = await TaskService.findTasksForTeam(teamId);
+      return res.json(tasks);
+    } catch (err: any) {
+      console.error("[TaskController.getTasksForTeam] error:", err);
+      return res.status(500).json({ error: err?.message || "Failed to fetch tasks" });
+    }
   }
-}
+
   static async getTaskById(req: Request, res: Response) {
     try {
-      const task = await TaskService.findById(req.params.id);
+      const id = req.params.id;
+      const task = await TaskService.findById(id);
       if (!task) return res.status(404).json({ error: "Task not found" });
-      res.json(task);
+      return res.json(task);
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      console.error("[TaskController.getTaskById] error:", err);
+      return res.status(500).json({ error: err?.message || "Failed to fetch task" });
     }
   }
 
   static async updateTask(req: Request, res: Response) {
     try {
-      const task = await TaskService.update(req.params.id, req.body);
-      if (!task) return res.status(404).json({ error: "Task not found" });
-      res.json(task);
+      const updated = await TaskService.update(req.params.id, req.body as any);
+      if (!updated) return res.status(404).json({ error: "Task not found" });
+
+      const populated = await Task.findById(req.params.id)
+        .populate("assignedTo", "name email avatarUrl")
+        .populate("assignedBy", "name email avatarUrl")
+        .populate("comments.by", "name avatarUrl")
+        .populate("team", "name members admin")
+        .lean();
+
+      return res.json(populated);
     } catch (err: any) {
-      res.status(400).json({ error: err.message });
+      console.error("[TaskController.updateTask] error:", err);
+      return res.status(400).json({ error: err?.message || "Failed to update task" });
     }
   }
 
@@ -99,9 +117,10 @@ export default class TaskController {
     try {
       const success = await TaskService.delete(req.params.id);
       if (!success) return res.status(404).json({ error: "Task not found" });
-      res.json({ message: "Task deleted" });
+      return res.json({ message: "Task deleted" });
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      console.error("[TaskController.deleteTask] error:", err);
+      return res.status(500).json({ error: err?.message || "Failed to delete task" });
     }
   }
 
@@ -110,26 +129,24 @@ export default class TaskController {
       const { id } = req.params;
       const { text } = req.body;
       const userId = req.user?.userId;
-      if (!text || !userId)
-        return res.status(400).json({ error: "Text and user required" });
+      if (!text || !userId) return res.status(400).json({ error: "Text and user required" });
 
       const task = await Task.findById(id).populate("team");
       if (!task) return res.status(404).json({ error: "Task not found" });
 
-      const teamId = task.team._id.toString();
-      const team = await Team.findById(teamId);
-      if (!team) {
-        return res.status(404).json({ error: "Team not found" });
-      }
+      const teamId = String((task.team as any)?._id ?? task.team);
+      const team = await Team.findById(teamId).populate("admin").populate("members.user");
+      if (!team) return res.status(404).json({ error: "Team not found" });
+
       const isMember =
-        team.admin.toString() === userId ||
-        team.members.some(
-          (m: any) =>
-            m.user && (m.user._id?.toString?.() || m.user.toString()) === userId
-        );
-      if (!isMember) {
-        return res.status(403).json({ error: "Forbidden: Not a team member" });
-      }
+        String((team.admin as any)?._id ?? team.admin) === String(userId) ||
+        (team.members || []).some((m: any) => {
+          const u = m?.user;
+          const idStr = (u && u._id) ? String(u._id) : String(u);
+          return idStr === String(userId);
+        });
+
+      if (!isMember) return res.status(403).json({ error: "Forbidden: Not a team member" });
 
       const comment = {
         text,
@@ -139,13 +156,16 @@ export default class TaskController {
       task.comments.push(comment);
       await task.save();
 
-      const populatedTask = await task.populate(
-        "comments.by",
-        "name avatarUrl"
-      );
-      res.json(populatedTask.comments);
+      const populatedTask = await Task.findById(id)
+        .populate("assignedTo", "name email avatarUrl")
+        .populate("assignedBy", "name email avatarUrl")
+        .populate("comments.by", "name avatarUrl")
+        .populate("team", "name");
+
+      return res.json(populatedTask);
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      console.error("[TaskController.addComment] error:", err);
+      return res.status(500).json({ error: err?.message || "Failed to add comment" });
     }
   }
 
@@ -154,27 +174,25 @@ export default class TaskController {
       const { id } = req.params;
       const file = req.file as any;
       const userId = req.user?.userId;
-
       if (!userId) return res.status(400).json({ error: "User ID required" });
       if (!file) return res.status(400).json({ error: "No file uploaded" });
 
       const task = await Task.findById(id).populate("team");
       if (!task) return res.status(404).json({ error: "Task not found" });
 
-      const teamId = task.team._id.toString();
-      const team = await Team.findById(teamId);
-      if (!team) {
-        return res.status(404).json({ error: "Team not found" });
-      }
+      const teamId = String((task.team as any)?._id ?? task.team);
+      const team = await Team.findById(teamId).populate("admin").populate("members.user");
+      if (!team) return res.status(404).json({ error: "Team not found" });
+
       const isMember =
-        team.admin.toString() === userId ||
-        team.members.some(
-          (m: any) =>
-            m.user && (m.user._id?.toString?.() || m.user.toString()) === userId
-        );
-      if (!isMember) {
-        return res.status(403).json({ error: "Forbidden: Not a team member" });
-      }
+        String((team.admin as any)?._id ?? team.admin) === String(userId) ||
+        (team.members || []).some((m: any) => {
+          const u = m?.user;
+          const idStr = (u && u._id) ? String(u._id) : String(u);
+          return idStr === String(userId);
+        });
+
+      if (!isMember) return res.status(403).json({ error: "Forbidden: Not a team member" });
 
       const userObjectId = new mongoose.Types.ObjectId(userId);
 
@@ -185,9 +203,17 @@ export default class TaskController {
         date: new Date(),
       });
       await task.save();
-      res.json(task.refFiles);
+
+      const populatedTask = await Task.findById(id)
+        .populate("refFiles.uploadedBy", "name")
+        .lean();
+
+      if (!populatedTask) return res.status(404).json({ error: "Task not found" });
+
+      return res.json(populatedTask.refFiles);
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      console.error("[TaskController.addFile] error:", err);
+      return res.status(500).json({ error: err?.message || "Failed to add file" });
     }
   }
 
@@ -200,36 +226,33 @@ export default class TaskController {
       if (!task) return res.status(404).json({ error: "Task not found" });
 
       const userId: string | undefined = req.user?.userId;
-      if (!userId) {
-        return res.status(400).json({ error: "User ID required" });
-      }
-      const teamId = task.team._id.toString();
-      const team = await Team.findById(teamId);
-      if (!team) {
-        return res.status(404).json({ error: "Team not found" });
-      }
-      const isMember =
-        team.admin.toString() === userId ||
-        team.members.some(
-          (m: any) =>
-            m.user && (m.user._id?.toString?.() || m.user.toString()) === userId
-        );
-      if (!isMember) {
-        return res.status(403).json({ error: "Forbidden: Not a team member" });
-      }
+      if (!userId) return res.status(400).json({ error: "User ID required" });
 
-      if (
-        !["not started", "in progress", "completed", "closed"].includes(status)
-      ) {
+      const teamId = String((task.team as any)?._id ?? task.team);
+      const team = await Team.findById(teamId).populate("admin").populate("members.user");
+      if (!team) return res.status(404).json({ error: "Team not found" });
+
+      const isMember =
+        String((team.admin as any)?._id ?? team.admin) === String(userId) ||
+        (team.members || []).some((m: any) => {
+          const u = m?.user;
+          const idStr = (u && u._id) ? String(u._id) : String(u);
+          return idStr === String(userId);
+        });
+
+      if (!isMember) return res.status(403).json({ error: "Forbidden: Not a team member" });
+
+      if (!["not started", "in progress", "completed", "closed"].includes(status)) {
         return res.status(400).json({ error: "Invalid status value" });
       }
 
       task.status = status;
       await task.save();
 
-      res.json({ status: task.status });
+      return res.json({ status: task.status });
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      console.error("[TaskController.updateTaskStatus] error:", err);
+      return res.status(500).json({ error: err?.message || "Failed to update status" });
     }
   }
 
@@ -242,20 +265,19 @@ export default class TaskController {
       const task = await Task.findById(req.params.id).populate("team");
       if (!task) return res.status(404).json({ error: "Task not found" });
 
-      const teamId = task.team._id.toString();
-      const team = await Team.findById(teamId);
-      if (!team) {
-        return res.status(404).json({ error: "Team not found" });
-      }
+      const teamId = String((task.team as any)?._id ?? task.team);
+      const team = await Team.findById(teamId).populate("admin").populate("members.user");
+      if (!team) return res.status(404).json({ error: "Team not found" });
+
       const isMember =
-        team.admin.toString() === userId ||
-        team.members.some(
-          (m: any) =>
-            m.user && (m.user._id?.toString?.() || m.user.toString()) === userId
-        );
-      if (!isMember) {
-        return res.status(403).json({ error: "Forbidden: Not a team member" });
-      }
+        String((team.admin as any)?._id ?? team.admin) === String(userId) ||
+        (team.members || []).some((m: any) => {
+          const u = m?.user;
+          const idStr = (u && u._id) ? String(u._id) : String(u);
+          return idStr === String(userId);
+        });
+
+      if (!isMember) return res.status(403).json({ error: "Forbidden: Not a team member" });
 
       task.progressFields.push({
         title,
@@ -264,9 +286,17 @@ export default class TaskController {
         date: new Date(),
       });
       await task.save();
-      res.json(task.progressFields);
+
+      const populatedTask = await Task.findById(req.params.id)
+        .populate("progressFields.by", "name avatarUrl")
+        .lean();
+
+      if (!populatedTask) return res.status(404).json({ error: "Task not found" });
+
+      return res.json(populatedTask.progressFields);
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      console.error("[TaskController.updateProgressField] error:", err);
+      return res.status(500).json({ error: err?.message || "Failed to update progress" });
     }
   }
 }

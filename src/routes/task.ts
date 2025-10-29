@@ -1,38 +1,28 @@
 import { Router } from "express";
 import TaskController from "../controllers/taskController";
-import { requireAuth, requireCanCreateTask } from "../middleware/auth";
+import { requireAuth } from "../middleware/auth";
+import { requireTeamMember, requireTeamAdmin } from "../middleware/permissions";
+import { requireCanCreateTask } from "../middleware/auth"; // your existing middleware
 
 const router = Router();
 
-// Create a new task (admin only)
-// router.post("/", requireAuth, requireTeamAdmin, TaskController.createTask);
-router.post("/", (req, res, next) => {
-  console.log("[TaskRoutes] POST /tasks hit");
-  next();
-}, requireAuth, requireCanCreateTask, TaskController.createTask);
+// Create task (requires permission via requireCanCreateTask)
+router.post("/", requireAuth, requireCanCreateTask, TaskController.createTask);
 
-// Get all tasks for a team (any authenticated user who is a team member)
-router.get("/team/:teamId", requireAuth, TaskController.getTasksForTeam);
+// Team tasks (any team member)
+router.get("/team/:teamId", requireAuth, requireTeamMember, TaskController.getTasksForTeam);
 
-// Get a specific task by ID (any authenticated user who is a team member)
-router.get("/:id", requireAuth, TaskController.getTaskById);
+// View a task (team member)
+router.get("/:id", requireAuth, requireTeamMember, TaskController.getTaskById);
 
-// Update a task (admin only for now, but can extend with assigned member check)
-router.put("/:id", requireAuth, requireCanCreateTask, TaskController.updateTask);
+// Partial update (admin)
+router.patch("/:id", requireAuth, requireTeamAdmin, TaskController.updateTask);
 
-// Delete a task (admin only)
-router.delete("/:id", requireAuth, requireCanCreateTask, TaskController.deleteTask);
+// Add comment (team members)
+router.post("/:id/comments", requireAuth, requireTeamMember, TaskController.addComment);
 
-// Add a comment to a task (any authenticated user who is a team member)
-router.post("/:id/comments", requireAuth, TaskController.addComment);
-
-// Add a file to a task (any authenticated user who is a team member)
-router.post("/:id/files", requireAuth, TaskController.addFile);
-
-// Update progress field (any authenticated user who is a team member)
-router.patch("/:id/progress", requireAuth, TaskController.updateProgressField);
-
-// Update task status (any authenticated user who is a team member)
-router.patch("/:id/status", requireAuth, TaskController.updateTaskStatus);
+// Update progress/status (team members)
+router.patch("/:id/progress", requireAuth, requireTeamMember, TaskController.updateProgressField);
+router.patch("/:id/status", requireAuth, requireTeamMember, TaskController.updateTaskStatus);
 
 export default router;
