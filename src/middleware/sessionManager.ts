@@ -2,8 +2,11 @@ import { Redis } from 'ioredis'
 
 const redis = new Redis({
     host: process.env.REDIS_HOST,
-    port: Number(process.env.REDIS_PORT)
+    port: Number(process.env.REDIS_PORT),
+    password: process.env.REDIS_PASSWORD
 })
+
+console.log("host:", process.env.REDIS_HOST)
 
 export const udpateUserSession = async (userId: string, sessionData: any) => {
     const sessionKey = `user:session:${userId}`;

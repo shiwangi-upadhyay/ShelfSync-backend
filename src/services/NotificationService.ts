@@ -1,20 +1,24 @@
+import dotenv from "dotenv";
 import { Queue } from 'bullmq'
 import User from '../models/user';
 import Notification from "../models/notification"
 import { Types } from 'mongoose';
+dotenv.config();
 
 
 const emailQueue = new Queue('email-notifications', {
     connection: {
         host: process.env.REDIS_HOST,
         port: Number(process.env.REDIS_PORT),
+        password: process.env.REDIS_PASSWORD,
     }
 });
 
 const inAppQueue = new Queue('in-app-notifications', {
     connection: {
         host: process.env.REDIS_HOST,
-        port: Number(process.env.REDIS_PORT)
+        port: Number(process.env.REDIS_PORT),
+        password: process.env.REDIS_PASSWORD,
     }
 })
 

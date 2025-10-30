@@ -46,7 +46,7 @@ const inAppWorker = new Worker<InAppJobData>('in-app-notifications', async (job:
     } catch (error) {
         console.error(`Failed to deliver in-app notification:`, error);
 
-        await Notification.findByIdAndDelete(notificationId, {
+        await Notification.findByIdAndUpdate(notificationId, {
             $inc: { retryCount: 1 },
             status: job.attemptsMade >= (job.opts.attempts || 3) ? 'failed' : 'pending'
         })
@@ -56,7 +56,8 @@ const inAppWorker = new Worker<InAppJobData>('in-app-notifications', async (job:
 }, {
     connection: {
         host: process.env.REDIS_HOST,
-        port: Number(process.env.REDIS_PORT)
+        port: Number(process.env.REDIS_PORT),
+        password: process.env.REDIS_PASSWORD
 
     },
     concurrency: 10
