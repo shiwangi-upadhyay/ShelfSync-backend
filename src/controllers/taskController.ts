@@ -7,6 +7,7 @@ import NotificationService from "../services/NotificationService";
 
 export default class TaskController {
   static async createTask(req: Request, res: Response) {
+    console.log("creating task method hit")
     try {
       const { teamId, tasks } = req.body;
       const userId = req.user?.userId;
@@ -70,6 +71,7 @@ export default class TaskController {
           const teamName = (fullTask.team as any)?.name || "your name"
 
           for (let assignee of fullTask.assignedTo as any[]) {
+            console.log("notifaction send to mail")
             try {
               await NotificationService.sendNotification({
                 userId: String(assignee._id),

@@ -4,8 +4,12 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon --exec ts-node --transpile-only ./src/app.ts",
+    "dev:worker": "nodemon --exec ts-node --transpile-only ./src/worker.ts",
+    "dev:all": "concurrently \"npm run dev\" \"npm run dev:worker\"",
     "build": "tsc",
-    "start": "node dist/app.js"
+    "start": "node dist/app.js",
+    "start:worker": "node dist/worker.js",
+    "start:all": "concurrently \"npm run start\" \"npm run start:worker\""
   },
   "keywords": [],
   "author": "",
@@ -33,6 +37,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/multer": "^2.0.0",
     "@types/nodemailer": "^7.0.2",
+    "concurrently": "^9.2.1",
     "nodemon": "^3.1.10",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"

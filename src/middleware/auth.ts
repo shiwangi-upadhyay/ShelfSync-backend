@@ -16,7 +16,6 @@ declare module "express-serve-static-core" {
 // Middleware to ensure the logged-in user is team admin OR has canCreateTask permission
 export async function requireCanCreateTask(req: Request, res: Response, next: NextFunction) {
   try {
-    console.log("[requireCanCreateTask] Called for route:", req.originalUrl);
     const userId = req.user?.userId;
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
@@ -70,8 +69,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
     return next();
   }
 
-  console.log("[requireAuth] Called for route:", req.originalUrl);
-  console.log("[requireAuth] Cookies received:", req.cookies);
+
 
   const token = req.cookies.authToken;
   if (!token) {
@@ -85,7 +83,6 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
       role: string;
     };
     req.user = decoded;
-    console.log("[requireAuth] JWT decoded, req.user set:", req.user);
     next();
   } catch (err) {
     console.error("[requireAuth] JWT verification failed:", err);

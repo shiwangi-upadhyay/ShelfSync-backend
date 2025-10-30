@@ -1,6 +1,8 @@
+import dotenv from "dotenv";
 import { Worker, Job } from 'bullmq';
 import nodemailer from 'nodemailer';
 import Notification from '../models/notification';
+dotenv.config()
 
 const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
@@ -59,7 +61,8 @@ const emailWorker = new Worker<EmailJobData>('email-notifications', async (job: 
 }, {
     connection: {
         host: process.env.REDIS_HOST,
-        port: Number(process.env.REDIS_PORT)
+        port: Number(process.env.REDIS_PORT),
+        password: process.env.REDIS_PASSWORD
     },
     limiter: {
         max: 100,

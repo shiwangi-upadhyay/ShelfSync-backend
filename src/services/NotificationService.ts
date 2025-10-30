@@ -54,9 +54,10 @@ export class NotificationServices {
 
     private async checkUserLoginStatus(userId: string): Promise<boolean> {
         // Check if user has active session in Redis
-        const redis = emailQueue.client;
+        const redis = await emailQueue.client;
         const sessionKey = `user:session:${userId}`;
-        const session = (await redis).get(sessionKey)
+        const session = await redis.get(sessionKey);
+        console.log("session", session)
 
         return !!session
     }
@@ -91,6 +92,15 @@ export class NotificationServices {
     }
 
     private async sendEmailNotification(user: any, title: string, message: string, metadata?: Record<string, any>) {
+
+        const priorityMap: Record<string, number> = {
+            high: 1,
+            medium: 5,
+            low: 10
+        };
+
+
+        console.log("metadata:", metadata)
         // save to MongoDb
         const notification = await Notification.create({
             userId: user._id,
@@ -114,7 +124,7 @@ export class NotificationServices {
                 type: 'exponential',
                 delay: 5000
             },
-            priority: metadata?.priority || 5
+            priority: priorityMap[metadata?.priority] ?? 5
         })
 
         return notification

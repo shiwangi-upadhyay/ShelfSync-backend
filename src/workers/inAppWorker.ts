@@ -1,6 +1,8 @@
+import dotenv from "dotenv";
 import { Worker, Job } from 'bullmq'
 import { Server } from 'socket.io'
 import Notification from "../models/notification"
+dotenv.config()
 
 interface InAppJobData {
     notificationId: string,
