@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import Team from "../models/team";
 import Task from "../models/task";
+import { udpateUserSession } from "./sessionManager";
 
 // Augment Express Request type to include 'user'
 declare module "express-serve-static-core" {
@@ -63,7 +64,7 @@ export async function requireCanCreateTask(req: Request, res: Response, next: Ne
   }
 }
 // Authenticate: Verifies JWT in cookies, attaches user to req
-export function requireAuth(req: Request, res: Response, next: NextFunction) {
+export async function requireAuth(req: Request, res: Response, next: NextFunction) {
   // Allow CORS preflight requests
   if (req.method === "OPTIONS") {
     return next();
@@ -83,6 +84,15 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
       role: string;
     };
     req.user = decoded;
+
+    // Refresh Session in Redis
+    await udpateUserSession(decoded.userId, {
+      userId: decoded.userId,
+      email: decoded.email,
+      lastActivity: new Date().toISOString(),
+      token: token
+    });
+
     next();
   } catch (err) {
     console.error("[requireAuth] JWT verification failed:", err);

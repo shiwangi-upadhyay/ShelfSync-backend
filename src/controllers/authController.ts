@@ -4,6 +4,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import transporter from "../config/email";
 import Otp from "../models/otp";
+import { removeUserSession, udpateUserSession } from "../middleware/sessionManager";
 
 export default class AuthController {
   static async signup(req: Request, res: Response) {
@@ -33,11 +34,23 @@ export default class AuthController {
       const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
       if (!isPasswordValid)
         return res.status(401).json({ error: "Invalid password" });
+
+
       const token = jwt.sign(
         { userId: user._id, email: user.email, role: user.role },
         process.env.JWT_SECRET!,
         { expiresIn: "30d" }
       );
+
+      // update user session in redis
+      await udpateUserSession(String(user._id), {
+        userId: String(user._id),
+        email: user.email,
+        loginTime: new Date().toISOString(),
+        token: token
+      })
+
+
       res
         .cookie("authToken", token, {
           httpOnly: true,
@@ -56,6 +69,15 @@ export default class AuthController {
   }
   static async logout(_req: Request, res: Response) {
     try {
+
+      const userId = _req.user?.userId;
+
+      if (userId) {
+        // Remove User session from redis
+        await removeUserSession(String(userId))
+      }
+
+
       res.clearCookie("authToken", {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
