@@ -3,6 +3,7 @@ import { TaskService } from "../services/dbServices/taskService";
 import Task from "../models/task";
 import mongoose from "mongoose";
 import Team from "../models/team";
+import NotificationService from "../services/NotificationService";
 
 export default class TaskController {
   static async createTask(req: Request, res: Response) {
@@ -61,9 +62,40 @@ export default class TaskController {
           .populate("assignedBy", "name email avatarUrl")
           .populate("comments.by", "name avatarUrl")
           .populate("team", "name");
-        if (fullTask) created.push(fullTask);
-      }
+        if (fullTask) {
+          created.push(fullTask);
 
+          // Send notification to all assigned user
+          const assignedByUser = fullTask.assignedBy as any;
+          const teamName = (fullTask.team as any)?.name || "your name"
+
+          for (let assignee of fullTask.assignedTo as any[]) {
+            try {
+              await NotificationService.sendNotification({
+                userId: String(assignee._id),
+                title: "New Task Assigned",
+                message: `${assignedByUser.name} assigned you a task: "${t.desc}" in ${teamName}`,
+                metadata: {
+                  taskId: String(fullTask._id),
+                  teamId: String(teamId),
+                  taskDesc: t.desc,
+                  topic: t.topic,
+                  subTopic: t.subTopic,
+                  priority: t.priority,
+                  startDate: t.startDate,
+                  endDate: t.endDate,
+                  assignedBy: assignedByUser.name,
+                  type: "task_assignment"
+                }
+              })
+            } catch (notifErr) {
+              console.error(`Failed to send notification to user ${assignee._id}:`, notifErr);
+              // Don't fail the task creation if notification fails
+            }
+          }
+
+        }
+      }
       return res.status(201).json({ created });
     } catch (err: any) {
       console.error("[TaskController.createTask] error:", err);
