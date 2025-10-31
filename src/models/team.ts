@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document, Types } from "mongoose";
+import { Schema, Document, Types, model } from "mongoose";
 
 export interface ITeamMember {
   user: Types.ObjectId;
@@ -7,6 +7,7 @@ export interface ITeamMember {
 
 export interface ITeam extends Document {
   name: string;
+  project: Types.ObjectId;
   admin: Types.ObjectId;
   members: ITeamMember[];
   createdAt: Date;
@@ -14,14 +15,15 @@ export interface ITeam extends Document {
 }
 
 const TeamMemberSchema = new Schema<ITeamMember>({
-  user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  user: { type: Schema.Types.ObjectId, ref: "User", required: true },
   canCreateTask: { type: Boolean, default: false }
 }, { _id: false });
 
 const TeamSchema = new Schema<ITeam>({
   name: { type: String, required: true },
-  admin: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  project: { type: Schema.Types.ObjectId, ref: "Project", required: true },
+  admin: { type: Schema.Types.ObjectId, ref: "User", required: true },
   members: { type: [TeamMemberSchema], default: [] },
 }, { timestamps: true });
 
-export default mongoose.model<ITeam>("Team", TeamSchema);
+export default model<ITeam>("Team", TeamSchema);
