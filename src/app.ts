@@ -47,6 +47,7 @@ app.use(
     origin: function (origin, callback) {
       const allowedOrigins = [
         "http://localhost:3000",
+        "http://localhost:3001",
         "https://shelf-sync-seven.vercel.app",
       ];
 
