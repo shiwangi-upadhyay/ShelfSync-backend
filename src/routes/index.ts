@@ -1,19 +1,14 @@
 import { Router } from "express";
-import authRoutes from "./auth";
-import userRoutes from "./user";
-import teamRoutes from "./team";
-import taskRoutes from "./task";
-import notificationRoutes from "./notification"
-import projectRoutes from "./project"
+import allRoute from "./allRoutes";
 
 const router = Router();
-router.use("/teams", teamRoutes);
-router.use("/user", userRoutes);
-router.use("/auth", authRoutes);
-router.use('/notification', notificationRoutes)
-router.use("/projects", projectRoutes)
-
-router.use("/tasks", taskRoutes);
+router.use("/teams", allRoute.teamRoutes);
+router.use("/user", allRoute.userRoutes);
+router.use("/auth", allRoute.authRoutes);
+router.use('/notification', allRoute.notificationRoutes);
+router.use("/projects", allRoute.projectRoutes);
+router.use("/department", allRoute.departmentRoutes)
+router.use("/tasks", allRoute.taskRoutes);
 
 
 export default router;
