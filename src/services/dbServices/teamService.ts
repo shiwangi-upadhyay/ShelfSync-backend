@@ -30,6 +30,7 @@ export class TeamService {
       name,
       admin: adminId,
       members: uniqueMembers,
+      project: projectId
     });
     const full = await Team.findById(team._id)
       .populate("admin", "name email avatarUrl")

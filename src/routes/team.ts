@@ -19,16 +19,16 @@ router.get("/my_teams", TeamController.getTeamsForUser);
 router.get("/:id", validate(teamZod.getTeamByIdSchema), requireTeamMember, TeamController.getTeamById);
 
 // Update team - team admin only
-router.patch("/:id", validate(teamZod.updateTeamSchema), requireTeamAdmin, TeamController.updateTeam);
+router.patch("/:id", validate(teamZod.updateTeamSchema), requireProjectOwnership, TeamController.updateTeam);
 
 // Add member - team admin only
-router.post("/:id/members", validate(teamZod.addMemberToTeamSchema), requireTeamAdmin, TeamController.addMember);
+router.post("/:id/members", validate(teamZod.addMemberToTeamSchema), requireProjectOwnership, TeamController.addMember);
 
 // Remove member - team admin only
-router.delete("/:id/members/:memberId", requireTeamAdmin, TeamController.removeMember);
+router.delete("/:id/members/:memberId", requireProjectOwnership, TeamController.removeMember);
 
 // Delete team - team admin only
-router.delete("/:id", validate(teamZod.removeMemberFromTeamSchema), requireTeamAdmin, TeamController.deleteTeam);
+router.delete("/:id", validate(teamZod.removeMemberFromTeamSchema), requireProjectOwnership, TeamController.deleteTeam);
 
 
 
