@@ -27,6 +27,8 @@ import {
     deleteTeamSchema
 } from "./team"
 
+import { createUserSchema, updateUserSchema, getUserByIdSchema, searchUsersSchema, deleteUserSchema } from "./user"
+
 
 
 
@@ -66,9 +68,18 @@ export const teamZod = {
     deleteTeamSchema
 }
 
+export const userZod = {
+    createUserSchema,
+    updateUserSchema,
+    getUserByIdSchema,
+    searchUsersSchema,
+    deleteUserSchema
+}
+
 export default {
     projectZod,
     departmentZod,
     memberRequestZod,
-    teamZod
+    teamZod,
+    userZod
 }
