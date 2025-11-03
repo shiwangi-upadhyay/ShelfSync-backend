@@ -8,7 +8,7 @@ export class TeamService {
     name,
     members,
     adminId,
-    projectId
+    projectId,
   }: {
     name: string;
     members: ITeamMember[];

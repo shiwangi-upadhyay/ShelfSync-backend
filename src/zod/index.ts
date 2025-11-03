@@ -17,6 +17,16 @@ import {
 
 import { createMemberRequestSchema, getMemberRequestByIdSchema, approveRequestSchema, rejectRequestSchema, cancelRequestSchema } from "./memberRequest"
 
+import {
+    createTeamSchema,
+    updateTeamSchema,
+    getTeamByIdSchema,
+    getTeamsByProjectSchema,
+    addMemberToTeamSchema,
+    removeMemberFromTeamSchema,
+    deleteTeamSchema
+} from "./team"
+
 
 
 
@@ -46,8 +56,19 @@ export const memberRequestZod = {
     cancelRequestSchema
 }
 
+export const teamZod = {
+    createTeamSchema,
+    updateTeamSchema,
+    getTeamByIdSchema,
+    getTeamsByProjectSchema,
+    addMemberToTeamSchema,
+    removeMemberFromTeamSchema,
+    deleteTeamSchema
+}
+
 export default {
     projectZod,
     departmentZod,
-    memberRequestZod
+    memberRequestZod,
+    teamZod
 }

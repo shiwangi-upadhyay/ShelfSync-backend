@@ -1,18 +1,35 @@
 import { Router } from "express";
 import TeamController from "../controllers/teamController";
-import { requireAuth } from "../middleware/auth";
+import { requireAuth, requireProjectOwnership } from "../middleware/auth";
 import { requireTeamAdmin, requireTeamMember } from "../middleware/permissions";
+import { validate } from "../middleware/validationMiddleware";
+import { teamZod } from "../zod";
 
 const router = Router();
 
-router.post("/", requireAuth, TeamController.createTeam);
-router.get("/", requireAuth, TeamController.getTeamsForUser);
-router.get("/:id", requireAuth, requireTeamMember, TeamController.getTeamById);
+router.use(requireAuth)
 
-// admin-only operations
-router.patch("/:id", requireAuth, requireTeamAdmin, TeamController.updateTeam);
-router.delete("/:id", requireAuth, requireTeamAdmin, TeamController.deleteTeam);
-router.post("/:id/members", requireAuth, requireTeamAdmin, TeamController.addMember);
-router.delete("/:id/members/:memberId", requireAuth, requireTeamAdmin, TeamController.removeMember);
+// Create Team - Project Owner only
+router.post("/", requireProjectOwnership, validate(teamZod.createTeamSchema), TeamController.createTeam);
+
+// get user's team
+router.get("/my_teams", TeamController.getTeamsForUser);
+
+// Get team by Id - must be member
+router.get("/:id", validate(teamZod.getTeamByIdSchema), requireTeamMember, TeamController.getTeamById);
+
+// Update team - team admin only
+router.patch("/:id", validate(teamZod.updateTeamSchema), requireTeamAdmin, TeamController.updateTeam);
+
+// Add member - team admin only
+router.post("/:id/members", validate(teamZod.addMemberToTeamSchema), requireTeamAdmin, TeamController.addMember);
+
+// Remove member - team admin only
+router.delete("/:id/members/:memberId", requireTeamAdmin, TeamController.removeMember);
+
+// Delete team - team admin only
+router.delete("/:id", validate(teamZod.removeMemberFromTeamSchema), requireTeamAdmin, TeamController.deleteTeam);
+
+
 
 export default router;

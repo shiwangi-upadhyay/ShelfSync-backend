@@ -5,12 +5,13 @@ export default class TeamController {
   static async createTeam(req: Request, res: Response) {
     try {
       const userId = req.user?.userId;
+
       if (!userId || typeof userId !== "string") {
         return res
           .status(400)
           .json({ error: "User ID is required and must be a string" });
       }
-      const { name, members } = req.body;
+      const { name, members, projectId } = req.body;
       // members: [{ user: userId, canCreateTask: boolean }, ...]
       const membersArr = Array.isArray(members) ? members : [];
       // Always ensure admin is included (will be handled in service as well)
@@ -18,6 +19,7 @@ export default class TeamController {
         name,
         members: membersArr,
         adminId: userId,
+        projectId
       });
       res.status(201).json(team);
     } catch (err) {
