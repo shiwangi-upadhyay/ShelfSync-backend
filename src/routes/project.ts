@@ -19,25 +19,25 @@ router.use(requireAuth);
 
 // Only Super Admin can create projects
 router.post(
-    "/projects",
+    "/",
     requireSuperAdmin,
     validate(projectZod.createProjectSchema),
     ProjectController.createProject
 );
 
 // Anyone authenticated can view all projects
-router.get("/projects", ProjectController.getAllProjects);
+router.get("/", ProjectController.getAllProjects);
 
 // Project Owners can view their projects
 router.get(
-    "/projects/my-projects",
+    "/my-projects",
     requireProjectOwner,
     ProjectController.getProjectsByOwner
 );
 
 // View specific project (must be member or admin)
 router.get(
-    "/projects/:id",
+    "/:id",
     validate(projectZod.getProjectByIdSchema),
     requireProjectMember,
     ProjectController.getProjectById
@@ -45,7 +45,7 @@ router.get(
 
 // Only project owner or super admin can update
 router.put(
-    "/projects/:id",
+    "/:id",
     validate(projectZod.updateProjectSchema),
     requireProjectOwnership,
     ProjectController.updateProject
@@ -53,7 +53,7 @@ router.put(
 
 // Only project owner can add members
 router.post(
-    "/projects/:id/members",
+    "/:id/members",
     validate(projectZod.addMemberToProjectSchema),
     requireProjectOwnership,
     ProjectController.addMember
@@ -61,7 +61,7 @@ router.post(
 
 // Only project owner can remove members
 router.delete(
-    "/projects/:id/members",
+    "/:id/members",
     validate(projectZod.removeMemberFromProjectSchema),
     requireProjectOwnership,
     ProjectController.removeMember
@@ -69,7 +69,7 @@ router.delete(
 
 // Only Super Admin can delete projects
 router.delete(
-    "/projects/:id",
+    "/:id",
     requireSuperAdmin,
     validate(projectZod.deleteProjectSchema),
     ProjectController.deleteProject

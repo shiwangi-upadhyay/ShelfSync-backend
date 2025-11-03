@@ -18,11 +18,11 @@ export default class ProjectController {
 
             const { name, description, department, projectOwner } = req.body;
 
-            if (!name || !department || !projectOwner) {
-                return res.status(400).json({
-                    error: "Name, department, and project owner are required"
-                });
-            }
+            // if (!name || !department || !projectOwner) {
+            //     return res.status(400).json({
+            //         error: "Name, department, and project owner are required"
+            //     });
+            // }
 
             const project = await ProjectService.createProject({
                 name,
@@ -34,6 +34,7 @@ export default class ProjectController {
 
             res.status(201).json(project);
         } catch (err: any) {
+            console.error("err", err)
             res.status(400).json({ error: err.message });
         }
     }
