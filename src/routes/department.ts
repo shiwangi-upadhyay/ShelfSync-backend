@@ -11,29 +11,29 @@ const router = express.Router();
 router.use(requireAuth);
 
 router.post(
-    "/departments",
+    "/",
     requireSuperAdmin,
     validate(departmentZod.createDepartmentSchema),
     DepartmentController.createDepartment
 );
 
-router.get("/departments", DepartmentController.getAllDepartments);
+router.get("/", DepartmentController.getAllDepartments);
 
 router.get(
-    "/departments/:id",
+    "/:id",
     validate(departmentZod.getDepartmentByIdSchema),
     DepartmentController.getDepartmentById
 );
 
 router.put(
-    "/departments/:id",
+    "/:id",
     requireSuperAdmin,
     validate(departmentZod.updateDepartmentSchema),
     DepartmentController.updateDepartment
 );
 
 router.delete(
-    "/departments/:id",
+    "/:id",
     requireSuperAdmin,
     validate(departmentZod.deleteDepartmentSchema),
     DepartmentController.deleteDepartment
