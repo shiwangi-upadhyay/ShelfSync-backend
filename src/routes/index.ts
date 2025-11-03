@@ -7,9 +7,9 @@ import notificationRoutes from "./notification"
 
 const router = Router();
 router.use("/teams", teamRoutes);
-router.use("/", userRoutes);
-router.use("/", authRoutes);
-router.use('/', notificationRoutes)
+router.use("/user", userRoutes);
+router.use("/auth", authRoutes);
+router.use('/notification', notificationRoutes)
 
 router.use("/tasks", taskRoutes);
 
