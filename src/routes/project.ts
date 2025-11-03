@@ -26,7 +26,7 @@ router.post(
 );
 
 // Anyone authenticated can view all projects
-router.get("/", ProjectController.getAllProjects);
+router.get("/", requireSuperAdmin, ProjectController.getAllProjects);
 
 // Project Owners can view their projects
 router.get(
@@ -40,6 +40,7 @@ router.get(
     "/:id",
     validate(projectZod.getProjectByIdSchema),
     requireProjectMember,
+    requireSuperAdmin,
     ProjectController.getProjectById
 );
 
