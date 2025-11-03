@@ -62,7 +62,13 @@ export class UserService {
     role?: string;
   }) {
     const user = new User({ name, email, passwordHash, role });
-    return await user.save();
+    const savedUser = await user.save();
+
+    // Convert to plain object and remove sensitive fields
+    const userObj = savedUser.toObject() as Partial<typeof savedUser>;
+    delete userObj.passwordHash;
+
+    return userObj
   }
   static async update(
     userId: string,
