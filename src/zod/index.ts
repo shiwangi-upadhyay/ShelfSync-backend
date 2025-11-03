@@ -15,6 +15,8 @@ import {
     deleteDepartmentSchema,
 } from "./department";
 
+import { createMemberRequestSchema, getMemberRequestByIdSchema, approveRequestSchema, rejectRequestSchema, cancelRequestSchema } from "./memberRequest"
+
 
 
 
@@ -36,7 +38,16 @@ export const departmentZod = {
     deleteDepartmentSchema,
 }
 
+export const memberRequestZod = {
+    createMemberRequestSchema,
+    getMemberRequestByIdSchema,
+    approveRequestSchema,
+    rejectRequestSchema,
+    cancelRequestSchema
+}
+
 export default {
     projectZod,
-    departmentZod
+    departmentZod,
+    memberRequestZod
 }
