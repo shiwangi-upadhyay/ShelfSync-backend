@@ -1,5 +1,6 @@
 import Team, { ITeam, ITeamMember } from "../../models/team";
 import User from "../../models/user";
+import Project from "../../models/project"
 import mongoose from "mongoose";
 
 export class TeamService {
@@ -7,17 +8,19 @@ export class TeamService {
     name,
     members,
     adminId,
+    projectId
   }: {
     name: string;
-    members: { user: string; canCreateTask?: boolean }[];
+    members: ITeamMember[];
     adminId: string;
+    projectId: string
   }) {
     console.log(`[TeamService.createTeam] name="${name}" adminId=${adminId} membersCount=${members?.length ?? 0}`);
     const adminMember: ITeamMember = { user: new mongoose.Types.ObjectId(adminId), canCreateTask: true };
     const uniqueMembers: ITeamMember[] = [
       adminMember,
       ...members
-        .filter((m) => m.user !== adminId)
+        .filter((m) => String(m.user) !== adminId)
         .map((m) => ({
           user: new mongoose.Types.ObjectId(m.user),
           canCreateTask: !!m.canCreateTask,
@@ -44,7 +47,7 @@ export class TeamService {
       .populate("members.user", "name email avatarUrl");
     console.log(`[TeamService.findTeamsForUser] found ${teams.length} teams for user ${userId}`);
     teams.forEach((t) => {
-      console.log(`[TeamService.findTeamsForUser] team ${t._id} members sample: ${JSON.stringify((t.members || []).slice(0,5))}`);
+      console.log(`[TeamService.findTeamsForUser] team ${t._id} members sample: ${JSON.stringify((t.members || []).slice(0, 5))}`);
     });
     return teams;
   }
@@ -95,5 +98,68 @@ export class TeamService {
       .populate("members.user", "name email avatarUrl");
     console.log(`[TeamService.removeMember] team ${teamId} now has ${t?.members?.length ?? 0} members`);
     return t;
+  }
+
+
+  // New methods for project integration
+  static async findByProject(projectId: string) {
+    console.log(`[TeamService.findByProject] projectId=${projectId}`);
+    return await Team.find({ project: projectId })
+      .populate("admin", "name email")
+      .populate("members.user", "name email memberType")
+      .sort({ createdAt: -1 });
+  }
+
+  static async updateMemberPermission(
+    teamId: string,
+    userId: string,
+    canCreateTask: boolean
+  ) {
+    console.log(
+      `[TeamService.updateMemberPermission] teamId=${teamId} userId=${userId} canCreateTask=${canCreateTask}`
+    );
+    return await Team.findOneAndUpdate(
+      { _id: teamId, "members.user": userId },
+      { $set: { "members.$.canCreateTask": canCreateTask } },
+      { new: true }
+    )
+      .populate("admin", "name email")
+      .populate("members.user", "name email");
+  }
+
+  static async getTeamMembers(teamId: string) {
+    console.log(`[TeamService.getTeamMembers] teamId=${teamId}`);
+    const team = await Team.findById(teamId).populate(
+      "members.user",
+      "name email memberType"
+    );
+
+    return team ? team.members : [];
+  }
+
+  static async count(): Promise<number> {
+    return await Team.countDocuments();
+  }
+
+  static async countByProject(projectId: string): Promise<number> {
+    return await Team.countDocuments({ project: projectId });
+  }
+
+  static async delete(teamId: string): Promise<boolean> {
+    console.log(`[TeamService.delete] teamId=${teamId}`);
+    const team = await Team.findById(teamId);
+    if (!team) return false;
+
+    // Remove team from all users
+    const memberIds = team.members.map((m) => m.user);
+    await User.updateMany({ _id: { $in: memberIds } }, { $pull: { teams: teamId } });
+
+    // Remove team from project
+    await Project.findByIdAndUpdate(team.project, {
+      $pull: { teams: teamId },
+    });
+
+    const result = await Team.findByIdAndDelete(teamId);
+    return !!result;
   }
 }

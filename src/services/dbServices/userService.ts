@@ -109,4 +109,71 @@ export class UserService {
     await Otp.deleteMany({ email }); // Remove used OTPs
     return true;
   }
+
+
+  static async addProject(userId: string, projectId: string): Promise<void> {
+    await User.findByIdAndUpdate(userId, {
+      $addToSet: { projects: projectId },
+      $inc: { activeProjectCount: 1 },
+    });
+  }
+
+  static async removeProject(userId: string, projectId: string): Promise<void> {
+    await User.findByIdAndUpdate(userId, {
+      $pull: { projects: projectId },
+      $inc: { activeProjectCount: -1 },
+    });
+  }
+
+  static async addTeam(userId: string, teamId: string): Promise<void> {
+    await User.findByIdAndUpdate(userId, {
+      $addToSet: { teams: teamId },
+    });
+  }
+
+  static async removeTeam(userId: string, teamId: string): Promise<void> {
+    await User.findByIdAndUpdate(userId, {
+      $pull: { teams: teamId },
+    });
+  }
+
+  static async findByRole(role: string): Promise<any[]> {
+    return await User.find({ role }, { passwordHash: 0 })
+      .populate("projects", "name")
+      .sort({ name: 1 });
+  }
+
+  static async findAvailableSharedMembers(): Promise<any[]> {
+    return await User.find(
+      {
+        memberType: "shared",
+        activeProjectCount: { $lt: 2 },
+      },
+      { passwordHash: 0 }
+    ).populate("projects", "name");
+  }
+
+  static async findDedicatedMembers(): Promise<any[]> {
+    return await User.find(
+      {
+        memberType: "dedicated",
+      },
+      { passwordHash: 0 }
+    ).populate("projects", "name");
+  }
+
+  static async countByRole(role: string): Promise<number> {
+    return await User.countDocuments({ role });
+  }
+
+  static async updatePassword(
+    id: string,
+    passwordHash: string
+  ): Promise<any | null> {
+    return await User.findByIdAndUpdate(
+      id,
+      { $set: { passwordHash } },
+      { new: true }
+    ).select("-passwordHash");
+  }
 }
