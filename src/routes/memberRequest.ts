@@ -18,7 +18,7 @@ router.use(requireAuth);
 
 // Create request - Project Owner only
 router.post(
-    "/member-requests",
+    "/",
     requireProjectOwner,
     validate(memberRequestZod.createMemberRequestSchema),
     MemberRequestController.createMemberRequest
@@ -26,28 +26,28 @@ router.post(
 
 // Get my requests
 router.get(
-    "/member-requests/my-requests",
+    "/my-requests",
     requireProjectOwner,
     MemberRequestController.getMyRequests
 );
 
 // Get pending approvals
 router.get(
-    "/member-requests/pending-approvals",
+    "/pending-approvals",
     requireProjectOwner,
     MemberRequestController.getPendingApprovals
 );
 
 // Get specific request
 router.get(
-    "/member-requests/:id",
+    "/:id",
     validate(memberRequestZod.getMemberRequestByIdSchema),
     MemberRequestController.getRequestById
 );
 
 // Approve request - Only current project owner can approve
 router.post(
-    "/member-requests/:id/approve",
+    "/:id/approve",
     validate(memberRequestZod.approveRequestSchema),
     requireMemberRequestApproval,
     MemberRequestController.approveRequest
@@ -55,7 +55,7 @@ router.post(
 
 // Reject request - Only current project owner can reject
 router.post(
-    "/member-requests/:id/reject",
+    "/:id/reject",
     validate(memberRequestZod.rejectRequestSchema),
     requireMemberRequestApproval,
     MemberRequestController.rejectRequest
@@ -63,7 +63,7 @@ router.post(
 
 // Cancel request - Requesting project owner can cancel
 router.delete(
-    "/member-requests/:id/cancel",
+    "/:id/cancel",
     validate(memberRequestZod.cancelRequestSchema),
     MemberRequestController.cancelRequest
 );

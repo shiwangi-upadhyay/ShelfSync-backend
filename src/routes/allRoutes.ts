@@ -5,6 +5,7 @@ import taskRoutes from "./task";
 import notificationRoutes from "./notification";
 import projectRoutes from "./project";
 import departmentRoutes from "./department";
+import memberRequestRoutes from "./memberRequest"
 
 export default {
     authRoutes,
@@ -14,4 +15,5 @@ export default {
     notificationRoutes,
     projectRoutes,
     departmentRoutes,
+    memberRequestRoutes
 };
