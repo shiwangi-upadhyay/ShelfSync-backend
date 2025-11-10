@@ -3,6 +3,7 @@ import { Queue } from 'bullmq'
 import User from '../models/user';
 import Notification from "../models/notification"
 import { Types } from 'mongoose';
+import { EmailTemplates } from "../views/emailTemplates";
 dotenv.config();
 
 
@@ -32,11 +33,13 @@ interface NotificationPayload {
 
 
 export class NotificationServices {
+
     async sendNotification(payload: NotificationPayload) {
         const { userId, title, message, metadata } = payload;
 
         // Check if user is logged in 
         const user = await User.findById(userId);
+
         if (!user) {
             throw new Error('user not found')
         }
@@ -85,7 +88,8 @@ export class NotificationServices {
             backoff: {
                 type: 'exponential',
                 delay: 2000
-            }
+            },
+            removeOnComplete: true
         })
 
         return notification
@@ -98,6 +102,38 @@ export class NotificationServices {
             medium: 5,
             low: 10
         };
+
+        let subject = title;
+        let html = message;
+
+
+        // Generate HTML from templates if applicable
+        switch (metadata?.type) {
+            case "task_assignment":
+                const assign = EmailTemplates.taskAssigned({
+                    name: user.name,
+                    assignedBy: metadata.assignedBy,
+                    desc: metadata.taskDesc,
+                    teamName: metadata.teamName,
+                    startDate: metadata.startDate,
+                    endDate: metadata.endDate,
+                    priority: metadata.priority,
+                });
+                subject = assign.subject;
+                html = assign.html;
+                break;
+
+            case "task_completed":
+                const completed = EmailTemplates.taskCompleted({
+                    name: user.name,
+                    completedBy: metadata.completedBy,
+                    desc: metadata.taskDesc,
+                    teamName: metadata.teamName,
+                });
+                subject = completed.subject;
+                html = completed.html;
+                break;
+        }
 
 
         console.log("metadata:", metadata)
@@ -115,8 +151,8 @@ export class NotificationServices {
         await emailQueue.add('send-email', {
             notificationId: notification._id.toString(),
             email: user.email,
-            title,
-            message,
+            title: subject,
+            message: html,
             metadata
         }, {
             attempts: 5,
