@@ -15,6 +15,7 @@ export default class UserController {
 
   // UPDATE: use new search function
   static async searchUsers(req: Request, res: Response) {
+    console.log("search usera controller method called");
     try {
       const search = typeof req.query.q === "string" ? req.query.q : "";
       const page = req.query.page ? parseInt(req.query.page as string) : 1;
@@ -56,17 +57,29 @@ export default class UserController {
   }
   static async createUser(req: Request, res: Response) {
     try {
-      const { name, email, password, role } = req.body;
+      const { name, email, password, role, sendWelcomeEmail: sendMail } = req.body;
+
       const existing = await UserService.findByEmail(email);
       if (existing)
         return res.status(409).json({ error: "Email already exists" });
+
       const passwordHash = await bcrypt.hash(password, 10);
+
       const user = await UserService.createUser({
         name,
         email,
         passwordHash,
         role,
       });
+
+      // if (sendMail) {
+      //   try {
+      //     await 
+      //   } catch (error) {
+
+      //   }
+      // }
+
       res.status(201).json({ user });
     } catch (err: any) {
       res.status(400).json({ error: err.message });

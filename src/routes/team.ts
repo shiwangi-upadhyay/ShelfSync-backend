@@ -10,7 +10,8 @@ const router = Router();
 router.use(requireAuth)
 
 // Create Team - Project Owner only
-router.post("/", requireProjectOwnership, validate(teamZod.createTeamSchema), TeamController.createTeam);
+router.post("/", requireProjectOwnership,
+    validate(teamZod.createTeamSchema), TeamController.createTeam);
 
 // get user's team
 router.get("/my_teams", TeamController.getTeamsForUser);
